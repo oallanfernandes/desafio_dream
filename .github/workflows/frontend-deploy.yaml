@@ -8,7 +8,7 @@ env:
   ECR_REPOSITORY: dreamsquad-frontend
   ECS_SERVICE: dreamsquad-frontend
   ECS_CLUSTER: dreamsquad-frontend-cluster
-  CONTAINER_NAME: dreamsquad-frontend
+  CONTAINER_NAME: frontend
 
 jobs:
   deploy:
