@@ -1,7 +1,7 @@
 name: Frontend Deploy
 
 on:
-  workflow_dispatch:  # Permite execução manual pelo GitHub UI
+  workflow_dispatch: 
 
 env:
   AWS_REGION: us-east-1
@@ -9,6 +9,7 @@ env:
   ECS_SERVICE: dreamsquad-frontend
   ECS_CLUSTER: dreamsquad-frontend-cluster
   CONTAINER_NAME: frontend
+  TASK_DEFINITION_FAMILY: dreamsquad-frontend
 
 jobs:
   deploy:
@@ -43,16 +44,27 @@ jobs:
         docker push $ECR_REGISTRY/$ECR_REPOSITORY:latest
         echo "image=$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG" >> $GITHUB_OUTPUT
 
+    - name: Debug - List available task definitions
+      run: |
+        echo "🔍 Listing all task definition families:"
+        aws ecs list-task-definition-families --region ${{ env.AWS_REGION }}
+        echo ""
+        echo "🔍 Looking for task definition: ${{ env.TASK_DEFINITION_FAMILY }}"
+
     - name: Download current task definition
       run: |
         aws ecs describe-task-definition \
-          --task-definition ${{ env.CONTAINER_NAME }} \
+          --task-definition ${{ env.TASK_DEFINITION_FAMILY }} \
           --query taskDefinition \
+          --region ${{ env.AWS_REGION }} \
           --output json > task-definition.json
         
         # Remove campos não necessários
         jq 'del(.taskDefinitionArn, .revision, .status, .requiresAttributes, .compatibilities, .registeredAt, .registeredBy)' \
           task-definition.json > task-definition-clean.json
+        
+        echo "📄 Task definition downloaded successfully"
+        echo "Container name to update: ${{ env.CONTAINER_NAME }}"
 
     - name: Fill in the new image ID in the Amazon ECS task definition
       id: task-def
@@ -77,3 +89,4 @@ jobs:
         echo "**Image:** \`${{ steps.build-image.outputs.image }}\`" >> $GITHUB_STEP_SUMMARY
         echo "**Cluster:** \`${{ env.ECS_CLUSTER }}\`" >> $GITHUB_STEP_SUMMARY
         echo "**Service:** \`${{ env.ECS_SERVICE }}\`" >> $GITHUB_STEP_SUMMARY
+        echo "**Task Definition:** \`${{ env.TASK_DEFINITION_FAMILY }}\`" >> $GITHUB_STEP_SUMMARY
