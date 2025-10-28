@@ -9,7 +9,7 @@ on:
 
 env:
   AWS_REGION: us-east-1
-  S3_BUCKET: dreamsquad-daily-files
+  S3_BUCKET: dreamsquad-daily-files-allan
 
 jobs:
   upload-to-s3:
