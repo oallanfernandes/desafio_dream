@@ -9,7 +9,7 @@ on:
 
 env:
   AWS_REGION: us-east-1
-  S3_BUCKET: dreamsquad-daily-files-allan
+  S3_BUCKET: dreamsquad-daily-files
 
 jobs:
   upload-to-s3:
@@ -27,8 +27,8 @@ jobs:
     - name: Generate timestamp and create file
       id: create-file
       run: |
-        # Gerar timestamp no formato YYYY-MM-DD_HH-MM-SS
-        TIMESTAMP=$(date -u +"%Y-%m-%d_%H-%M-%S")
+        # Gerar timestamp no formato YYYY-MM-DD_HH-MM-SS (horário de Brasília)
+        TIMESTAMP=$(TZ='America/Sao_Paulo' date +"%Y-%m-%d_%H-%M-%S")
         FILENAME="${TIMESTAMP}.txt"
         
         # Criar conteúdo do arquivo
