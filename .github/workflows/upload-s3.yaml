@@ -1,0 +1,61 @@
+name: Daily S3 Upload
+
+on:
+  schedule:
+    # Executa todos os dias às 10:00 AM BRT (13:00 UTC)
+    - cron: '0 13 * * *'
+  
+  workflow_dispatch:  # Permite execução manual
+
+env:
+  AWS_REGION: us-east-1
+  S3_BUCKET: dreamsquad-daily-files-allan
+
+jobs:
+  upload-to-s3:
+    name: Upload arquivo diário para S3
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Configure AWS credentials
+      uses: aws-actions/configure-aws-credentials@v4
+      with:
+        aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+        aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+        aws-region: ${{ env.AWS_REGION }}
+
+    - name: Generate timestamp and create file
+      id: create-file
+      run: |
+        # Gerar timestamp no formato YYYY-MM-DD_HH-MM-SS
+        TIMESTAMP=$(date -u +"%Y-%m-%d_%H-%M-%S")
+        FILENAME="${TIMESTAMP}.txt"
+        
+        # Criar conteúdo do arquivo
+        cat > ${FILENAME} << EOF
+        Arquivo gerado automaticamente pela rotina diária do GitHub Actions
+        
+        Data/Hora de execução (UTC): $(date -u +"%Y-%m-%d %H:%M:%S")
+        Data/Hora de execução (BRT): $(TZ='America/Sao_Paulo' date +"%Y-%m-%d %H:%M:%S")
+        
+        Workflow: ${{ github.workflow }}
+        Run ID: ${{ github.run_id }}
+        Run Number: ${{ github.run_number }}
+        Repository: ${{ github.repository }}
+        
+        Executado por: GitHub Actions
+        EOF
+        
+        echo "filename=${FILENAME}" >> $GITHUB_OUTPUT
+        echo "📄 Arquivo criado: ${FILENAME}"
+        cat ${FILENAME}
+
+    - name: Upload to S3
+      run: |
+        FILENAME="${{ steps.create-file.outputs.filename }}"
+        
+        aws s3 cp ${FILENAME} s3://${{ env.S3_BUCKET }}/${FILENAME} \
+          --region ${{ env.AWS_REGION }} \
+          --metadata execution-time="${{ steps.create-file.outputs.filename }}",source=github-actions
+        
+        echo "✅ Arquivo enviado para s3://${{ env.S3_BUCKET }}/${FILENAME}"
